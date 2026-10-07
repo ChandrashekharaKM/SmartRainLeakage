@@ -15,8 +15,9 @@ ENV/
 *.swp
 *.swo
 
-# Runtime database & logs
+# Runtime database, binary models & logs
 data/water.db
+models/*.joblib
 logs/
 *.log
 

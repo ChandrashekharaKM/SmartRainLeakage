@@ -59,6 +59,11 @@ def load_metrics():
 def ensure_db():
     # Guarantee tables exist on startup
     db.init_db(reset=False)
+    if not os.path.exists(trainer.MODEL_PATH) and os.path.exists(trainer.DATA_PATH):
+        try:
+            trainer.train()
+        except Exception:
+            pass
 
 
 @app.context_processor

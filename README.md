@@ -150,11 +150,9 @@ SmartRainLeakage/
 │   └── dataset.html            # Preprocessing metrics & custom CSV uploader
 ├── app.py                      # Flask web application & REST API server
 ├── db.py                       # SQLite database manager & schema definitions
-├── generate_dataset.py         # Realistic household dataset synthesizer
 ├── ml_pipeline.py              # Cleaning, feature extraction, ML training & scoring
 ├── service.py                  # Service layer connecting DB, ML scoring & alerts
 ├── train.py                    # CLI training pipeline & DB seeder
-├── test_app.py                 # Automated test suite
 ├── requirements.txt            # Python dependencies
 └── README.md                   # Documentation
 ```

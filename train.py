@@ -14,7 +14,6 @@ import json
 import joblib
 import pandas as pd
 import ml_pipeline as ml
-import generate_dataset as gen
 from db import init_db, conn
 import service
 
@@ -25,19 +24,16 @@ METRICS_PATH = os.path.join(MODELS_DIR, "metrics.json")
 MODEL_PATH = os.path.join(MODELS_DIR, "model.joblib")
 
 
-def train(csv_path=DATA_PATH, days=120, leaks=10, z=ml.Z_THRESHOLD, n_persist=ml.MIN_PERSIST, seed=42):
+def train(csv_path=DATA_PATH, z=ml.Z_THRESHOLD, n_persist=ml.MIN_PERSIST):
     os.makedirs(MODELS_DIR, exist_ok=True)
     os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
 
-    # 1. Dataset Generation if missing
+    # 1. Dataset Loading
     if not os.path.exists(csv_path):
-        print(f"[1/5] Dataset not found at {csv_path}. Generating synthetic {days}-day dataset...")
-        df_raw = gen.generate(days=days, seed=seed, n_leaks=leaks)
-        df_raw.to_csv(csv_path, index=False)
-        print(f"      Saved {len(df_raw)} records to {csv_path}")
-    else:
-        print(f"[1/5] Loading existing dataset from {csv_path}...")
-        df_raw = pd.read_csv(csv_path)
+        raise FileNotFoundError(f"Dataset not found at {csv_path}. Please place your CSV dataset in the data/ directory.")
+    
+    print(f"[1/5] Loading dataset from {csv_path}...")
+    df_raw = pd.read_csv(csv_path)
 
     # 2. Standardise & Preprocess
     print("[2/5] Standardising columns and preprocessing time series...")
