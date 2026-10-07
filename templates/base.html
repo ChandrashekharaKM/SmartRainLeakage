@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SmartRain - Smart Water Consumption & Leakage Detection{% endblock %}</title>
+  <meta name="description" content="Intelligent IoT and Machine Learning powered household water consumption monitoring and real-time leakage detection system.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- Chart.js for real-time telemetry and consumption analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <a href="{{ url_for('dashboard') }}" class="brand" id="brandLogo">
+      <div class="brand-icon">💧</div>
+      <div>
+        <div class="brand-title">SmartRain</div>
+        <div class="brand-tag">ML Leakage Detection</div>
+      </div>
+    </a>
+
+    {% if session.get('user_id') %}
+    <nav>
+      <ul class="nav-links">
+        <li>
+          <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" id="navDashboard">
+            📊 Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('analytics') }}" class="nav-link {% if request.endpoint == 'analytics' %}active{% endif %}" id="navAnalytics">
+            📈 Analytics
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('models_view') }}" class="nav-link {% if request.endpoint == 'models_view' %}active{% endif %}" id="navModels">
+            🧠 ML Models
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('alerts_view') }}" class="nav-link {% if request.endpoint == 'alerts_view' %}active{% endif %}" id="navAlerts">
+            🚨 Alerts
+            {% if open_alerts_count > 0 %}
+              <span class="nav-badge" id="navAlertsCount">{{ open_alerts_count }}</span>
+            {% endif %}
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('simulate_view') }}" class="nav-link {% if request.endpoint == 'simulate_view' %}active{% endif %}" id="navSimulate">
+            ⚡ IoT Simulator
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_for('dataset_view') }}" class="nav-link {% if request.endpoint == 'dataset_view' %}active{% endif %}" id="navDataset">
+            📁 Dataset
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="nav-actions">
+      <!-- Household Selection -->
+      <div class="user-pill" title="Active Monitored Household">
+        <span>🏠 Household #{{ current_hid }}</span>
+      </div>
+
+      <!-- User Profile & Logout -->
+      <div class="user-pill">
+        <div class="user-avatar">{{ current_user[0]|upper if current_user else 'U' }}</div>
+        <span>{{ current_user }}</span>
+      </div>
+      <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm" id="btnLogout">Logout</a>
+    </div>
+    {% endif %}
+  </header>
+
+  <!-- Flash Messages -->
+  <div class="app-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Main Content View -->
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>Smart Water Consumption and Leakage Detection Using Machine Learning &copy; 2026</p>
+    <p style="margin-top: 4px; font-size: 0.75rem; color: #64748b;">
+      Modules 1-8: Data Collection, Preprocessing, ML Regression, Leak Detection, SQLite DB, Web Dashboard &amp; Alerts.
+    </p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

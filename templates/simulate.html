@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}IoT Sensor Simulator - SmartRain{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <h2 style="font-size: 1.75rem; font-weight: 700;">IoT Sensor Telemetry Simulator</h2>
+  <p style="color: var(--text-muted); font-size: 0.95rem;">
+    Simulate real-time ESP32 water flow &amp; pressure telemetry without physical hardware (Synopsis Section 11 &amp; 12).
+  </p>
+</div>
+
+<!-- Simulation Scenarios Grid -->
+<div class="stats-grid" style="margin-bottom: 2rem;">
+  
+  <!-- Normal Flow -->
+  <div class="glass-card">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+      <div class="stat-icon icon-emerald">💧</div>
+      <h3 style="font-size: 1.1rem; font-weight: 700;">Normal Usage</h3>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+      Simulates standard household domestic water usage according to the diurnal schedule. Night hours return to 0-1 L/h.
+    </p>
+    <div style="display: flex; gap: 0.5rem;">
+      <button class="btn btn-secondary btn-sm btn-sim" data-hours="1" data-leak="false" style="flex: 1;">
+        + 1 Hour Normal
+      </button>
+      <button class="btn btn-secondary btn-sm btn-sim" data-hours="6" data-leak="false" style="flex: 1;">
+        + 6 Hours Normal
+      </button>
+    </div>
+  </div>
+
+  <!-- Transient Spike -->
+  <div class="glass-card">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+      <div class="stat-icon icon-amber">⚡</div>
+      <h3 style="font-size: 1.1rem; font-weight: 700;">Short Surge (Anomaly)</h3>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+      Injects a single hour surge (e.g. garden watering or car wash). Triggers residual anomaly Z &gt; 3.0, but NOT persistent leakage.
+    </p>
+    <button class="btn btn-secondary btn-sm btn-sim" data-hours="1" data-leak="true" style="width: 100%; border-color: rgba(245, 158, 11, 0.4);">
+      + 1 Hour High Usage
+    </button>
+  </div>
+
+  <!-- Persistent Leak -->
+  <div class="glass-card">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+      <div class="stat-icon icon-crimson">🚨</div>
+      <h3 style="font-size: 1.1rem; font-weight: 700;">Continuous Leakage</h3>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+      Injects continuous 60 min/h flow and pressure drop. Satisfies persistence condition (&ge; 3 hrs) to trigger an official Leakage Alert.
+    </p>
+    <div style="display: flex; gap: 0.5rem;">
+      <button class="btn btn-danger btn-sm btn-sim" data-hours="3" data-leak="true" style="flex: 1;">
+        + 3h Leak
+      </button>
+      <button class="btn btn-danger btn-sm btn-sim" data-hours="12" data-leak="true" style="flex: 1;">
+        + 12h Leak
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Real-Time Chart Feedback -->
+<div class="glass-card chart-card">
+  <div class="chart-header">
+    <div class="chart-title-wrap">
+      <h3 class="chart-title">Real-Time Simulated Telemetry</h3>
+      <span class="chart-subtitle">Updates immediately upon injection</span>
+    </div>
+    <div class="btn-group">
+      <button class="btn-filter" data-hours="24">24h</button>
+      <button class="btn-filter" data-hours="48">48h</button>
+      <button class="btn-filter active" data-hours="72">72h</button>
+    </div>
+  </div>
+  <div class="chart-wrapper">
+    <canvas id="consumptionChart"></canvas>
+  </div>
+</div>
+{% endblock %}

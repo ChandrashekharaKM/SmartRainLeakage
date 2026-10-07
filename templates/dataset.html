@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset & Preprocessing - SmartRain{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <h2 style="font-size: 1.75rem; font-weight: 700;">Data Collection &amp; Preprocessing</h2>
+  <p style="color: var(--text-muted); font-size: 0.95rem;">
+    Dataset management, automatic column standardization, missing value imputation, and cleaning metrics (Modules 2 &amp; 3).
+  </p>
+</div>
+
+<!-- Grid: Dataset Meta & Upload -->
+<div class="dashboard-grid-2" style="margin-bottom: 2rem;">
+  
+  <!-- Left: Upload Custom CSV -->
+  <div class="glass-card">
+    <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Upload Custom Water Dataset</h3>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+      Upload any hourly water consumption CSV (e.g. from Kaggle or smart meter logs). The system will automatically map column names, clean errors, and retrain the models.
+    </p>
+
+    <form method="POST" action="{{ url_for('api_upload_csv') }}" enctype="multipart/form-data">
+      <div class="form-group">
+        <label class="form-label" for="datasetFile">Select CSV File</label>
+        <input type="file" class="form-input" id="datasetFile" name="file" accept=".csv" required>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem;">
+        <button type="submit" class="btn btn-primary" id="btnUploadCsv">
+          📤 Upload, Clean &amp; Train
+        </button>
+        {% if csv_exists %}
+          <a href="{{ url_for('download_sample_csv') }}" class="btn btn-secondary" id="btnDownloadSample">
+            📥 Download Active CSV ({{ file_size_kb }} KB)
+          </a>
+        {% endif %}
+      </div>
+    </form>
+
+    <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle); font-size: 0.8rem; color: var(--text-dim);">
+      <strong>Supported flexible column formats:</strong> Date + Time, or Timestamp; FlowRate / Consumption; Duration; Pressure; Leak / Label (optional).
+    </div>
+  </div>
+
+  <!-- Right: Preprocessing Engine Stats -->
+  <div class="glass-card">
+    <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Preprocessing Statistics</h3>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+      Audited data-cleaning operations executed during pipeline preparation.
+    </p>
+
+    {% if metrics and metrics.preprocessing_stats %}
+      {% set ps = metrics.preprocessing_stats %}
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div style="background: rgba(255,255,255,0.03); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Raw Records</span>
+          <div style="font-size: 1.3rem; font-weight: 700; color: var(--text-main);">{{ ps.rows_in }}</div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Clean Hourly Series</span>
+          <div style="font-size: 1.3rem; font-weight: 700; color: var(--cyan-bright);">{{ ps.rows_out }} hrs</div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Duplicates Removed</span>
+          <div style="font-size: 1.3rem; font-weight: 700; color: var(--emerald);">{{ ps.duplicates_removed }}</div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Entry Errors Nulled</span>
+          <div style="font-size: 1.3rem; font-weight: 700; color: var(--amber);">{{ ps.entry_errors_nulled }}</div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); grid-column: span 2;">
+          <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Missing Values Imputed</span>
+          <div style="font-size: 1.3rem; font-weight: 700; color: var(--blue);">{{ ps.missing_values_filled }} (Time-interpolated)</div>
+        </div>
+      </div>
+    {% else %}
+      <p style="color: var(--text-muted);">No preprocessing run stats available.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Recent Raw Readings Table -->
+<div class="glass-card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <h3 style="font-size: 1.15rem; font-weight: 700;">Sensor Readings Stream Sample (Last 25 Hours)</h3>
+    <span style="font-size: 0.8rem; color: var(--text-muted);">Stored in SQLite Database</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Consumption (L/h)</th>
+          <th>Flow Rate (L/min)</th>
+          <th>Flow Duration (min)</th>
+          <th>Pressure (bar)</th>
+          <th>Leak Ground Truth</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in readings_sample %}
+          <tr>
+            <td style="font-family: monospace; font-size: 0.85rem;">{{ r.ts }}</td>
+            <td><strong>{{ r.consumption }} L</strong></td>
+            <td>{{ r.flow_rate }}</td>
+            <td>{{ r.duration }} min</td>
+            <td>{{ r.pressure if r.pressure is not none else 'N/A' }} bar</td>
+            <td>
+              {% if r.leak_label == 1 %}
+                <span class="badge badge-high">1 (Leak)</span>
+              {% elif r.leak_label == 0 %}
+                <span class="badge badge-success">0 (Normal)</span>
+              {% else %}
+                <span class="badge badge-low">Unlabelled</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

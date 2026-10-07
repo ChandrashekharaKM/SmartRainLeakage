@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Sensor Analytics & Residuals - SmartRain{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <h2 style="font-size: 1.75rem; font-weight: 700;">Sensor Telemetry &amp; Statistical Residuals</h2>
+  <p style="color: var(--text-muted); font-size: 0.95rem;">
+    Multi-sensor correlation (Flow Rate vs Pressure) and Machine Learning residual analysis (Z-Scores).
+  </p>
+</div>
+
+<!-- Time Range Filters -->
+<div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+  <div class="btn-group">
+    <button class="btn-filter" data-hours="24">24 Hours</button>
+    <button class="btn-filter" data-hours="48">48 Hours</button>
+    <button class="btn-filter active" data-hours="72">72 Hours</button>
+    <button class="btn-filter" data-hours="168">7 Days</button>
+  </div>
+</div>
+
+<!-- Chart 1: Flow Rate and Pressure Dual-Axis -->
+<div class="glass-card chart-card" style="margin-bottom: 2rem;">
+  <div class="chart-header">
+    <div class="chart-title-wrap">
+      <h3 class="chart-title">Flow Rate &amp; Water Pressure Telemetry</h3>
+      <span class="chart-subtitle">Real-time pressure drop correlation against flow rate surges</span>
+    </div>
+  </div>
+  <div class="chart-wrapper">
+    <canvas id="telemetryChart"></canvas>
+  </div>
+</div>
+
+<!-- Chart 2: Residual Z-Scores Bar Chart -->
+<div class="glass-card chart-card" style="margin-bottom: 2rem;">
+  <div class="chart-header">
+    <div class="chart-title-wrap">
+      <h3 class="chart-title">Residual Z-Score Distribution (Actual vs Predicted Difference)</h3>
+      <span class="chart-subtitle">Z-score represents the standard deviations above expected consumption (Z &gt; 3.0 indicates anomaly)</span>
+    </div>
+  </div>
+  <div class="chart-wrapper">
+    <canvas id="residualChart"></canvas>
+  </div>
+</div>
+
+<!-- Insights & Theory Section -->
+<div class="dashboard-grid-2">
+  <div class="glass-card">
+    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem;">Physical Leak Indicators</h3>
+    <ul style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; padding-left: 1.25rem;">
+      <li><strong>Continuous Non-Zero Night Flow:</strong> Normal households display zero or near-zero flow between 1:00 AM and 5:00 AM. Constant flow during this period strongly signifies a leak.</li>
+      <li><strong>Pressure Drop Correlation:</strong> When an abnormal leak develops, pipeline pressure frequently dips below nominal levels (approx. 3.5 bar down to ~3.2 bar).</li>
+      <li><strong>Flow Duration:</strong> Normal tap uses last between 1-15 minutes/hour. Leaks run uninterrupted for 55-60 minutes/hour.</li>
+    </ul>
+  </div>
+
+  <div class="glass-card">
+    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem;">Statistical Anomaly Engine</h3>
+    <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6;">
+      The regression residual is defined as: <br>
+      <code style="background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; color: var(--cyan-bright);">
+        residual = actual - predicted
+      </code><br><br>
+      Heteroscedastic noise model: <br>
+      <code style="background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; color: var(--cyan-bright);">
+        &sigma; = (c0 + c1 &times; predicted) &times; 1.2533
+      </code><br><br>
+      <code style="background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; color: var(--cyan-bright);">
+        Z = residual / &sigma;
+      </code>
+    </p>
+  </div>
+</div>
+{% endblock %}

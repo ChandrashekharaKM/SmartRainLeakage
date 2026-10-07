@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Smart Water & Leakage Monitoring{% endblock %}
+
+{% block content %}
+<!-- 1. Real-Time Status Hero Banner -->
+<div class="status-hero {% if 'Leak' in summary.status %}status-leak{% elif 'Anomaly' in summary.status %}status-warning{% else %}status-normal{% endif %}" id="statusHeroBanner">
+  <div class="status-indicator">
+    <div class="pulse-ring-wrap">
+      <div class="pulse-ring"></div>
+      <div class="pulse-dot"></div>
+    </div>
+    <div>
+      <div class="status-title" id="statusHeroTitle">
+        {% if 'Leak' in summary.status %}
+          ⚠️ {{ summary.status }}
+        {% elif 'Anomaly' in summary.status %}
+          ⚡ {{ summary.status }}
+        {% else %}
+          ✓ System Normal
+        {% endif %}
+      </div>
+      <div class="status-desc" id="statusHeroDesc">
+        {% if 'Leak' in summary.status %}
+          Active persistent flow detected! Water is continuously running beyond expected limits.
+        {% elif 'Anomaly' in summary.status %}
+          Temporary flow surge identified. Model is monitoring consecutive hours for persistence.
+        {% else %}
+          Consumption matches learned historical profile. No continuous leakage detected.
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 0.75rem;">
+    {% if summary.open_alerts > 0 %}
+      <a href="{{ url_for('alerts_view') }}" class="btn btn-danger btn-sm" id="btnHeroAlerts">
+        Review {{ summary.open_alerts }} Alert(s)
+      </a>
+    {% endif %}
+    <a href="{{ url_for('simulate_view') }}" class="btn btn-secondary btn-sm" id="btnHeroSimulate">
+      ⚡ Test Simulator
+    </a>
+  </div>
+</div>
+
+<!-- 2. High-Level Metrics Cards -->
+<div class="stats-grid">
+  <!-- Flow Rate -->
+  <div class="glass-card stat-card">
+    <div class="stat-header">
+      <span class="stat-label">Current Flow Rate</span>
+      <div class="stat-icon icon-cyan">🌊</div>
+    </div>
+    <div>
+      <span class="stat-value" id="valFlowRate">{{ summary.latest_reading.flow_rate if summary.latest_reading else '0.0' }}</span>
+      <span class="stat-unit">L/min</span>
+    </div>
+    <div class="stat-footer">
+      <span>Avg 24h: {{ summary.avg_flow_24h }} L/min</span>
+    </div>
+  </div>
+
+  <!-- Pressure -->
+  <div class="glass-card stat-card">
+    <div class="stat-header">
+      <span class="stat-label">Line Pressure</span>
+      <div class="stat-icon icon-emerald">⏱️</div>
+    </div>
+    <div>
+      <span class="stat-value" id="valPressure">{{ summary.latest_reading.pressure if summary.latest_reading else '3.5' }}</span>
+      <span class="stat-unit">bar</span>
+    </div>
+    <div class="stat-footer">
+      <span>Avg 24h: {{ summary.avg_pressure_24h }} bar</span>
+    </div>
+  </div>
+
+  <!-- 24h Consumption -->
+  <div class="glass-card stat-card">
+    <div class="stat-header">
+      <span class="stat-label">24h Consumption</span>
+      <div class="stat-icon icon-blue">📊</div>
+    </div>
+    <div>
+      <span class="stat-value" id="val24hUsage">{{ summary.usage_24h }}</span>
+      <span class="stat-unit">Litres</span>
+    </div>
+    <div class="stat-footer">
+      <span>Past 7 days: {{ summary.usage_7d }} L</span>
+    </div>
+  </div>
+
+  <!-- Open Alerts -->
+  <div class="glass-card stat-card">
+    <div class="stat-header">
+      <span class="stat-label">Open Alerts</span>
+      <div class="stat-icon {% if summary.open_alerts > 0 %}icon-crimson{% else %}icon-emerald{% endif %}">🚨</div>
+    </div>
+    <div>
+      <span class="stat-value" id="valOpenAlerts">{{ summary.open_alerts }}</span>
+      <span class="stat-unit">Active</span>
+    </div>
+    <div class="stat-footer">
+      <span>High severity: {{ summary.high_alerts }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Primary Time-Series Visualizer -->
+<div class="glass-card chart-card">
+  <div class="chart-header">
+    <div class="chart-title-wrap">
+      <h3 class="chart-title">Water Consumption: Actual vs Machine Learning Prediction</h3>
+      <span class="chart-subtitle">Real-time comparison against expected baseline profile (red markers indicate anomalies)</span>
+    </div>
+    <div class="btn-group">
+      <button class="btn-filter" data-hours="24">24h</button>
+      <button class="btn-filter" data-hours="48">48h</button>
+      <button class="btn-filter active" data-hours="72">72h</button>
+      <button class="btn-filter" data-hours="168">7 Days</button>
+      <button class="btn-filter" data-hours="720">30 Days</button>
+    </div>
+  </div>
+  <div class="chart-wrapper">
+    <canvas id="consumptionChart"></canvas>
+  </div>
+</div>
+
+<!-- 4. Lower Dual-Panel Section: Recent Alerts & Quick Simulator -->
+<div class="dashboard-grid-2">
+  
+  <!-- Left: Recent Leak Alerts Table -->
+  <div class="glass-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.15rem; font-weight: 700;">Recent Leakage Incidents</h3>
+      <a href="{{ url_for('alerts_view') }}" class="btn btn-secondary btn-sm">View All &rarr;</a>
+    </div>
+
+    {% if recent_alerts %}
+      <div class="table-responsive">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Severity</th>
+              <th>Start Time</th>
+              <th>Duration</th>
+              <th>Excess Volume</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in recent_alerts %}
+              <tr>
+                <td>
+                  <span class="badge {% if a.severity == 'High' %}badge-high{% elif a.severity == 'Medium' %}badge-medium{% else %}badge-low{% endif %}">
+                    {{ a.severity }}
+                  </span>
+                </td>
+                <td style="font-family: monospace; font-size: 0.85rem;">{{ a.start_ts }}</td>
+                <td>{{ a.hours }} hrs</td>
+                <td style="color: var(--crimson); font-weight: 600;">+{{ a.excess_litres }} L</td>
+                <td>
+                  <span class="badge {% if a.status == 'open' %}badge-high{% else %}badge-success{% endif %}">
+                    {{ a.status|capitalize }}
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem;">
+        No active leakage incidents recorded.
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- Right: Quick Live Simulation Controls -->
+  <div class="glass-card">
+    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Quick IoT Simulator</h3>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+      Inject sensor readings to test machine learning leakage detection in real time.
+    </p>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <button class="btn btn-secondary btn-sim" data-hours="1" data-leak="false" id="btnSimNormal1">
+        💧 Inject 1 Hour Normal Flow
+      </button>
+      <button class="btn btn-secondary btn-sim" data-hours="3" data-leak="true" id="btnSimLeak3" style="border-color: rgba(245, 158, 11, 0.4);">
+        ⚠️ Inject 3h Water Leak (Anomaly)
+      </button>
+      <button class="btn btn-danger btn-sim" data-hours="12" data-leak="true" id="btnSimLeak12">
+        🚨 Inject 12h Heavy Leak (Persistent)
+      </button>
+    </div>
+
+    <!-- Active ML Model Meta -->
+    {% if metrics %}
+    <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle); font-size: 0.8rem; color: var(--text-muted);">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span>Active Model:</span>
+        <strong style="color: var(--cyan-bright);">{{ metrics.best_model }}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span>Z-Score Threshold:</span>
+        <strong>&gt; {{ metrics.z_threshold }} &sigma;</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span>Min Persistence:</span>
+        <strong>&ge; {{ metrics.min_persist_hours }} hours</strong>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

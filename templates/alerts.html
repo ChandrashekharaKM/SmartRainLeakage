@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Leakage Alerts & Notifications - SmartRain{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <h2 style="font-size: 1.75rem; font-weight: 700;">Leakage Alert Management</h2>
+  <p style="color: var(--text-muted); font-size: 0.95rem;">
+    Review, acknowledge, and resolve detected persistent water leakage events (Module 8: Alert Module).
+  </p>
+</div>
+
+<!-- Filter Tabs -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div class="btn-group">
+    <a href="{{ url_for('alerts_view') }}" class="btn-filter {% if not active_filter %}active{% endif %}" style="text-decoration: none;">
+      All ({{ alerts|length }})
+    </a>
+    <a href="{{ url_for('alerts_view', status='open') }}" class="btn-filter {% if active_filter == 'open' %}active{% endif %}" style="text-decoration: none;">
+      Open
+    </a>
+    <a href="{{ url_for('alerts_view', status='acknowledged') }}" class="btn-filter {% if active_filter == 'acknowledged' %}active{% endif %}" style="text-decoration: none;">
+      Acknowledged
+    </a>
+    <a href="{{ url_for('alerts_view', status='resolved') }}" class="btn-filter {% if active_filter == 'resolved' %}active{% endif %}" style="text-decoration: none;">
+      Resolved
+    </a>
+  </div>
+</div>
+
+<!-- Alerts Table Card -->
+<div class="glass-card" style="margin-bottom: 2rem;">
+  {% if alerts %}
+    <div class="table-responsive">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Severity</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Duration</th>
+            <th>Excess Litres</th>
+            <th>Status</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in alerts %}
+            <tr>
+              <td>
+                <span class="badge {% if a.severity == 'High' %}badge-high{% elif a.severity == 'Medium' %}badge-medium{% else %}badge-low{% endif %}">
+                  {{ a.severity }}
+                </span>
+              </td>
+              <td style="font-family: monospace; font-size: 0.85rem;">{{ a.start_ts }}</td>
+              <td style="font-family: monospace; font-size: 0.85rem;">{{ a.end_ts }}</td>
+              <td>{{ a.hours }} hours</td>
+              <td style="color: var(--crimson); font-weight: 700;">+{{ a.excess_litres }} L</td>
+              <td>
+                <span class="badge {% if a.status == 'open' %}badge-high{% elif a.status == 'acknowledged' %}badge-medium{% else %}badge-success{% endif %}">
+                  {{ a.status|capitalize }}
+                </span>
+              </td>
+              <td style="text-align: right;">
+                {% if a.status == 'open' %}
+                  <button class="btn btn-secondary btn-sm btn-alert-action" data-id="{{ a.id }}" data-status="acknowledged" title="Mark as seen">
+                    Acknowledge
+                  </button>
+                  <button class="btn btn-primary btn-sm btn-alert-action" data-id="{{ a.id }}" data-status="resolved" title="Mark as fixed">
+                    Resolve
+                  </button>
+                {% elif a.status == 'acknowledged' %}
+                  <button class="btn btn-primary btn-sm btn-alert-action" data-id="{{ a.id }}" data-status="resolved">
+                    Mark Resolved
+                  </button>
+                {% else %}
+                  <span style="color: var(--text-muted); font-size: 0.8rem;">✓ Closed</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+      <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+      <p>No alerts matching current filter.</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Alert Dispatch System Logs (Module 8) -->
+<div class="glass-card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <h3 style="font-size: 1.15rem; font-weight: 700;">Notification Dispatch Log (logs/alerts.log)</h3>
+    <span style="font-size: 0.8rem; color: var(--text-muted);">Simulated SMS / Push Notification Feed</span>
+  </div>
+
+  <div style="background: rgba(0, 0, 0, 0.45); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem; font-family: monospace; font-size: 0.82rem; max-height: 250px; overflow-y: auto; color: #94a3b8; line-height: 1.6;">
+    {% if log_lines %}
+      {% for line in log_lines %}
+        <div style="padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
+          <span style="color: var(--crimson);">[ALERT]</span> {{ line.strip() }}
+        </div>
+      {% endfor %}
+    {% else %}
+      <div style="color: var(--text-dim); text-align: center;">No alerts logged yet.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

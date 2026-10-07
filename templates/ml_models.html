@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Machine Learning Models - SmartRain{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <h2 style="font-size: 1.75rem; font-weight: 700;">Machine Learning Benchmark &amp; Detection Evaluation</h2>
+  <p style="color: var(--text-muted); font-size: 0.95rem;">
+    Comparison of supervised regression models (Module 4) and unsupervised Isolation Forest (Module 5).
+  </p>
+</div>
+
+{% if metrics %}
+<!-- Model Comparison Table -->
+<div class="glass-card" style="margin-bottom: 2rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+    <div>
+      <h3 style="font-size: 1.25rem; font-weight: 700;">Regression Model Comparison</h3>
+      <span style="color: var(--text-muted); font-size: 0.85rem;">Trained on normal consumption patterns; evaluated on held-out test data</span>
+    </div>
+    <div class="badge badge-success" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
+      ⭐ Best Model: {{ metrics.best_model }}
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Algorithm</th>
+          <th>Calibration RMSE</th>
+          <th>Test RMSE</th>
+          <th>R² Score</th>
+          <th>MAE (L/h)</th>
+          <th>Selection Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m_name, m_stats in metrics.models.items() %}
+          <tr>
+            <td><strong>{{ m_name }}</strong></td>
+            <td>{{ "%.2f"|format(m_stats.calibration_rmse) }}</td>
+            <td>{{ "%.2f"|format(m_stats.RMSE) }}</td>
+            <td style="color: {% if m_stats.R2 > 0.8 %}var(--emerald){% else %}var(--amber){% endif %}; font-weight: 600;">
+              {{ "%.3f"|format(m_stats.R2) }}
+            </td>
+            <td>{{ "%.2f"|format(m_stats.MAE) }} L</td>
+            <td>
+              {% if m_name == metrics.best_model %}
+                <span class="badge badge-success">Selected for Inference</span>
+              {% else %}
+                <span class="badge badge-low">Candidate</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Detection Performance & Confusion Matrix -->
+{% if metrics.detection %}
+<div class="dashboard-grid-2" style="margin-bottom: 2rem;">
+  
+  <!-- Left: Event-Level Leakage Detection -->
+  <div class="glass-card">
+    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem;">Event-Level Leak Detection Performance</h3>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+      Evaluated on ground-truth injected leakage incidents in the test partition.
+    </p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+      <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Leak Events Caught</span>
+        <div style="font-size: 1.8rem; font-weight: 700; color: var(--emerald); margin-top: 4px;">
+          {{ metrics.detection.event_level_regression.detected }} / {{ metrics.detection.event_level_regression.true_events }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">
+          ({{ "%.1f"|format(metrics.detection.event_level_regression.event_recall * 100) }}% recall)
+        </span>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">False Alarms</span>
+        <div style="font-size: 1.8rem; font-weight: 700; color: {% if metrics.detection.event_level_regression.false_alerts == 0 %}var(--emerald){% else %}var(--crimson){% endif %}; margin-top: 4px;">
+          {{ metrics.detection.event_level_regression.false_alerts }}
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Persistent filter mitigated short spikes</span>
+      </div>
+    </div>
+
+    <!-- Hourly Level Metrics Table -->
+    <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem;">Hourly Point Metrics</h4>
+    <div class="table-responsive">
+      <table class="custom-table" style="font-size: 0.82rem;">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>F1-Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Raw Residual (Z &gt; {{ metrics.z_threshold }})</td>
+            <td>{{ "%.2f"|format(metrics.detection.regression_threshold_only.precision) }}</td>
+            <td>{{ "%.2f"|format(metrics.detection.regression_threshold_only.recall) }}</td>
+            <td>{{ "%.2f"|format(metrics.detection.regression_threshold_only.f1) }}</td>
+          </tr>
+          <tr>
+            <td><strong>Persistent (Run &ge; {{ metrics.min_persist_hours }}h)</strong></td>
+            <td style="color: var(--emerald); font-weight: 600;">{{ "%.2f"|format(metrics.detection.regression_persistent.precision) }}</td>
+            <td style="color: var(--emerald); font-weight: 600;">{{ "%.2f"|format(metrics.detection.regression_persistent.recall) }}</td>
+            <td style="color: var(--emerald); font-weight: 600;">{{ "%.2f"|format(metrics.detection.regression_persistent.f1) }}</td>
+          </tr>
+          <tr>
+            <td>Isolation Forest (Unsupervised)</td>
+            <td>{{ "%.2f"|format(metrics.detection.isolation_forest.precision) }}</td>
+            <td>{{ "%.2f"|format(metrics.detection.isolation_forest.recall) }}</td>
+            <td>{{ "%.2f"|format(metrics.detection.isolation_forest.f1) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Right: Threshold Sensitivity Table -->
+  <div class="glass-card">
+    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem;">Threshold Z Sensitivity Curve</h3>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+      Trade-off between detection sensitivity and false positive suppression.
+    </p>
+
+    <div class="table-responsive">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Threshold (Z)</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>F1 Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in metrics.threshold_sensitivity %}
+            <tr {% if s.z == metrics.z_threshold %}style="background: rgba(6, 182, 212, 0.1);"{% endif %}>
+              <td>
+                <strong>{{ s.z }} &sigma;</strong>
+                {% if s.z == metrics.z_threshold %}<span class="badge badge-low" style="margin-left: 4px;">Active</span>{% endif %}
+              </td>
+              <td>{{ "%.2f"|format(s.precision) }}</td>
+              <td>{{ "%.2f"|format(s.recall) }}</td>
+              <td><strong>{{ "%.2f"|format(s.f1) }}</strong></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endif %}
+
+<!-- Retraining Parameters Section -->
+<div class="glass-card">
+  <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Hyperparameter Tuning &amp; Model Retraining</h3>
+  <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+    Adjust anomaly threshold parameters and re-fit regression models on current dataset.
+  </p>
+
+  <form id="retrainModelForm" style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-end;">
+    <div style="flex: 1; min-width: 200px;">
+      <label class="form-label" for="retrainZ">Anomaly Threshold (Z-score &sigma;)</label>
+      <input type="number" step="0.1" min="1.5" max="6.0" class="form-input" id="retrainZ" value="{{ metrics.z_threshold }}">
+    </div>
+
+    <div style="flex: 1; min-width: 200px;">
+      <label class="form-label" for="retrainPersist">Min Persistent Hours (Run Length)</label>
+      <input type="number" step="1" min="1" max="12" class="form-input" id="retrainPersist" value="{{ metrics.min_persist_hours }}">
+    </div>
+
+    <div>
+      <button type="submit" class="btn btn-primary" id="btnSubmitRetrain">
+        ⚡ Retrain &amp; Calibrate Models
+      </button>
+    </div>
+  </form>
+</div>
+
+{% else %}
+<div class="glass-card" style="text-align: center; padding: 3rem;">
+  <p style="color: var(--text-muted);">No trained model metrics found.</p>
+  <button class="btn btn-primary" style="margin-top: 1rem;" onclick="location.reload()">Train Models</button>
+</div>
+{% endif %}
+{% endblock %}

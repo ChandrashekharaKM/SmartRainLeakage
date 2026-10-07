@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Environment / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime database & logs
+data/water.db
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
